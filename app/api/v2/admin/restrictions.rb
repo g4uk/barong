@@ -17,6 +17,9 @@ module API
             optional :scope,
                      allow_blank: false,
                      values: { value: -> { Restriction::SCOPES }, message: 'admin.restriction.invalid_scope'}
+            optional :category,
+                     allow_blank: false,
+                     values: { value: -> { Restriction::CATEGORIES }, message: 'admin.restriction.invalid_category'}
             optional :range,
                      type: String,
                      values: { value: ->(p) { %w[created updated].include?(p) }, message: 'admin.restriction.invalid_range' },
@@ -25,6 +28,7 @@ module API
           end
           get do
             restrictions = Restriction.all
+            restrictions = params[:category] ? restrictions.where(category: params[:category]) : restrictions
             restrictions = params[:scope] ? restrictions.where(scope: params[:scope]) : restrictions
             restrictions = params[:to] ? restrictions.where("#{params[:range]}_at <= ?", Time.at(params[:to].to_i)) : restrictions
             restrictions = params[:from] ? restrictions.where("#{params[:range]}_at >= ?", Time.at(params[:from].to_i)) : restrictions
@@ -43,13 +47,20 @@ module API
                      values: { value: -> { Restriction::SCOPES }, message: 'admin.restriction.invalid_scope'}
             requires :value,
                      allow_blank: false
+            requires :category,
+                     type: String,
+                     values: { value: -> { Restriction::CATEGORIES }, message: 'admin.restriction.invalid_category'},
+                     allow_blank: false
             optional :state,
                      default: 'enabled',
                      allow_blank: false,
                      values: { value: -> { Restriction::STATES }, message: 'admin.restriction.invalid_state' }
+            optional :code,
+                     type: Integer,
+                     allow_blank: false
           end
           post do
-            restriction = Restriction.new(declared(params))
+            restriction = Restriction.new(declared(params, include_missing: false))
 
             code_error!(restriction.errors.details, 422) unless restriction.save
 
@@ -71,11 +82,18 @@ module API
             optional :scope,
                      allow_blank: false,
                      values: { value: -> { Restriction::SCOPES }, message: 'admin.restriction.invalid_scope' }
+            optional :category,
+                     type: String,
+                     values: { value: -> { Restriction::CATEGORIES }, message: 'admin.restriction.invalid_category'},
+                     allow_blank: false
             optional :value,
                      allow_blank: false
             optional :state,
                      allow_blank: false,
                      values: { value: -> { Restriction::STATES }, message: 'admin.restriction.invalid_state' }
+            optional :code,
+                     type: Integer,
+                     allow_blank: false
           end
           put do
             target_restriction = Restriction.find_by(id: params[:id])
